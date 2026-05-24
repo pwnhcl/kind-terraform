@@ -1,0 +1,97 @@
+---
+# PLAY 1
+- name: Prepare all nodes
+  hosts: k3s_nodes
+  become: yes
+
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - open-iscsi
+          - nfs-common
+          - lvm2
+        state: present
+
+    - name: Configure /etc/hosts
+      blockinfile:
+        path: /etc/hosts
+        block: |
+          172.31.41.100 k3s-node1
+          172.31.36.218 k3s-node2
+          172.31.36.246 k3s-node3
+
+
+# PLAY 2
+- name: Install first K3s server
+  hosts: k3s-node1
+  become: yes
+
+  tasks:
+
+    - name: Install K3s cluster-init
+      shell: |
+        curl -sfL https://get.k3s.io | \
+        INSTALL_K3S_EXEC="server --cluster-init" sh -
+      args:
+        executable: /bin/bash
+
+    - name: Wait for token
+      wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        timeout: 300
+
+    - name: Read token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: token
+
+    - name: Save token
+      set_fact:
+        k3s_token: "{{ token.content | b64decode | trim }}"
+
+    - name: Set kubeconfig permissions
+      file:
+        path: /etc/rancher/k3s/k3s.yaml
+        mode: '0644'
+
+
+# PLAY 3
+- name: Join additional master nodes
+  hosts:
+    - k3s-node2
+    - k3s-node3
+
+  become: yes
+
+  tasks:
+
+    - name: Join K3s cluster
+      shell: |
+        curl -sfL https://get.k3s.io | \
+        K3S_URL=https://172.31.41.100:6443 \
+        K3S_TOKEN={{ hostvars['k3s-node1']['k3s_token'] }} \
+        INSTALL_K3S_EXEC="server" sh -
+      args:
+        executable: /bin/bash
+
+
+# PLAY 4
+- name: Verify cluster
+  hosts: k3s-node1
+  become: yes
+
+  tasks:
+
+    - name: Get nodes
+      shell: kubectl get nodes
+      register: nodes
+
+    - debug:
+        var: nodes.stdout

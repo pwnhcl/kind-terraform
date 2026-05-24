@@ -1,0 +1,18 @@
+sudo nano /etc/hosts
+
+13.201.123.195   k3s-node-01
+15.206.158.122   k3s-node-02
+13.207.57.134    k3s-node-03
+
+
+
+
+sudo cat /var/lib/rancher/k3s/server/node-token
+
+
+curl -sfL https://get.k3s.io | \
+K3S_URL=https://13.201.123.195:6443 \
+K3S_TOKEN=K1023655d20ccfc86a3830c3191fa391f6ec18bf54fc16875bb187288cfbb2e92b8::server:1905e6479de3dcd528b09d5ac12c8476 \
+sh -
+
+ sudo chmod 644 /etc/rancher/k3s/k3s.yaml

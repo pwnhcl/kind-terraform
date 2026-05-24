@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currency-app
+  namespace: currency-namespace
+  labels:
+    app: currency-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: currency-app
+  template:
+    metadata:
+      labels:
+        app: currency-app
+    spec:
+      containers:
+      - name: currency-container
+        image: techwithprerit/k8s-hindi-app1:1.2-major
+        ports:
+        - containerPort: 8080

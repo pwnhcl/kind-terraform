@@ -1,0 +1,100 @@
+# longhorn-install.yml
+---
+- name: Install Longhorn on K3s Cluster
+  hosts: k3s_nodes
+  become: yes
+
+  vars:
+    longhorn_namespace: longhorn-system
+    longhorn_version: v1.11.2
+    longhorn_storage_path: /mnt/data/longhorn
+
+  tasks:
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade system packages
+      apt:
+        upgrade: dist
+
+    - name: Create Longhorn storage directory
+      file:
+        path: "{{ longhorn_storage_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Install required packages
+      apt:
+        name:
+          - open-iscsi
+          - nfs-common
+        state: present
+        update_cache: yes
+
+    - name: Enable iscsid service
+      systemd:
+        name: iscsid
+        enabled: yes
+        state: started
+
+    - name: Load dm_crypt module
+      modprobe:
+        name: dm_crypt
+        state: present
+
+    - name: Persist dm_crypt module
+      copy:
+        dest: /etc/modules-load.d/longhorn.conf
+        content: |
+          dm_crypt
+
+    - name: Install Longhorn using kubectl
+      shell: |
+        kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/{{ longhorn_version }}/deploy/longhorn.yaml
+      args:
+        executable: /bin/bash
+      run_once: true
+
+    - name: Wait for Longhorn namespace
+      shell: kubectl get ns {{ longhorn_namespace }}
+      register: ns_check
+      retries: 20
+      delay: 10
+      until: ns_check.rc == 0
+      run_once: true
+
+    - name: Wait for Longhorn settings CRD
+      shell: |
+        kubectl get settings.longhorn.io -n {{ longhorn_namespace }}
+      register: longhorn_settings
+      retries: 30
+      delay: 10
+      until: longhorn_settings.rc == 0
+      run_once: true
+
+    - name: Configure Longhorn custom storage path
+      shell: |
+        kubectl patch settings.longhorn.io default-data-path \
+        -n {{ longhorn_namespace }} \
+        --type merge \
+        -p '{"value":"{{ longhorn_storage_path }}"}'
+      args:
+        executable: /bin/bash
+      run_once: true
+
+    - name: Restart Longhorn manager pods
+      shell: |
+        kubectl delete pod -n {{ longhorn_namespace }} -l app=longhorn-manager
+      args:
+        executable: /bin/bash
+      run_once: true
+
+    - name: Wait for Longhorn pods
+      shell: kubectl get pods -n {{ longhorn_namespace }}
+      register: longhorn_pods
+      retries: 30
+      delay: 15
+      until: "'Running' in longhorn_pods.stdout"
+      run_once: true

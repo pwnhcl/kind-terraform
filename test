@@ -1,0 +1,60 @@
+kubectl patch node.longhorn.io k3s-node3 -n longhorn-system --type=json -p='[
+  {"op": "replace", "path": "/spec/disks/default-disk-47de3198ad96b40b/allowScheduling", "value": false}
+]'
+Step 2: Add new disk path (all 3 nodes)
+bash
+# Node 1
+kubectl patch node.longhorn.io k3s-node1 -n longhorn-system --type=json -p='[
+  {"op": "add", "path": "/spec/disks/default-disk-new", "value": {
+    "path": "/mnt/data/longhorn",
+    "allowScheduling": true,
+    "evictionRequested": false,
+    "storageReserved": 2785033420,
+    "tags": []
+  }}
+]'
+
+# Node 2
+kubectl patch node.longhorn.io k3s-node2 -n longhorn-system --type=json -p='[
+  {"op": "add", "path": "/spec/disks/default-disk-new", "value": {
+    "path": "/mnt/data/longhorn",
+    "allowScheduling": true,
+    "evictionRequested": false,
+    "storageReserved": 2785033420,
+    "tags": []
+  }}
+]'
+
+# Node 3
+kubectl patch node.longhorn.io k3s-node3 -n longhorn-system --type=json -p='[
+  {"op": "add", "path": "/spec/disks/default-disk-new", "value": {
+    "path": "/mnt/data/longhorn",
+    "allowScheduling": true,
+    "evictionRequested": false,
+    "storageReserved": 2785033420,
+    "tags": []
+  }}
+]'
+Step 3: Now remove the old disk (all 3 nodes)
+bash
+# Node 1
+kubectl patch node.longhorn.io k3s-node1 -n longhorn-system --type=json -p='[
+  {"op": "remove", "path": "/spec/disks/default-disk-47de3198ad96b40b"}
+]'
+
+# Node 2
+kubectl patch node.longhorn.io k3s-node2 -n longhorn-system --type=json -p='[
+  {"op": "remove", "path": "/spec/disks/default-disk-47de3198ad96b40b"}
+]'
+
+# Node 3
+kubectl patch node.longhorn.io k3s-node3 -n longhorn-system --type=json -p='[
+  {"op": "remove", "path": "/spec/disks/default-disk-47de3198ad96b40b"}
+]'
+Step 4: Verify
+bash
+kubectl get node.longhorn.io -n longhorn-system
+Nodes should show Schedulable within ~30 seconds.
+
+
+

@@ -1,0 +1,26 @@
+{
+    "apiVersion": "v1",
+    "kind": "Namespace",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"ingress-nginx\",\"app.kubernetes.io/name\":\"ingress-nginx\"},\"name\":\"ingress-nginx\"}}\n"
+        },
+        "creationTimestamp": "2026-05-03T00:41:17Z",
+        "labels": {
+            "app.kubernetes.io/instance": "ingress-nginx",
+            "app.kubernetes.io/name": "ingress-nginx",
+            "kubernetes.io/metadata.name": "ingress-nginx"
+        },
+        "name": "ingress-nginx",
+        "resourceVersion": "4309",
+        "uid": "e6de6ea8-dccc-4896-ab5e-c2a2d21adcb9"
+    },
+    "spec": {
+        "finalizers": [
+            "kubernetes"
+        ]
+    },
+    "status": {
+        "phase": "Active"
+    }
+}

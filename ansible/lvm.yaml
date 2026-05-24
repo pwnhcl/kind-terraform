@@ -1,0 +1,46 @@
+---
+- name: Install lmv on K3s Cluster
+  hosts: k3s_nodes
+  become: yes
+
+  tasks:
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    # - name: Upgrade system packages
+    #   apt:
+    #     upgrade: dist
+
+    - name: Install LVM
+      apt:
+        name: lvm2
+        state: present
+        update_cache: yes
+
+    - name: Create PV
+      command: pvcreate /dev/nvme1n1
+
+    - name: Create VG
+      command: vgcreate longhorn_vg /dev/nvme1n1
+
+    - name: Create LV
+      command: lvcreate -n longhorn_lv -l 100%FREE longhorn_vg
+
+    - name: Format filesystem
+      filesystem:
+        fstype: xfs
+        dev: /dev/longhorn_vg/longhorn_lv  
+
+    - name: Create mount directory
+      file:
+        path: /mnt/data
+        state: directory
+
+    - name: Mount volume
+      mount:
+        path: /mnt/data
+        src: /dev/longhorn_vg/longhorn_lv
+        fstype: xfs
+        state: mounted     
